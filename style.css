@@ -1,0 +1,159 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 20px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  :root {
+    --bg-color: white;
+    --text-color: black;
+  }
+  
+  body.dark-mode {
+    --bg-color: #181818;
+    --text-color: white;
+  }
+  
+  /* Стили для кнопок */
+  button {
+    padding: 10px 20px;
+    font-size: 16px;
+    margin: 10px;
+    cursor: pointer;
+    background-color: #0088cc;
+    color: white;
+    border: none;
+    border-radius: 5px;
+  }
+  
+  button:active {
+    transform: scale(0.95);
+  }
+  
+  .theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+  }
+  
+  /* Стиль карточки аккаунта */
+  .card2 {
+    border-radius: 20px;
+    background: rgba(39, 39, 39, 0.1);
+    backdrop-filter: blur(60px);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 40px;
+    color: #fff;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 80px rgba(0, 0, 0, 0.3);
+    align-items: center;
+  }
+  
+  .user-image {
+    position: relative;
+    overflow: hidden;
+    height: 154px;
+    width: 154px;
+    display: inline-block;
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .user-image img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+  }
+  
+  .status-indicator {
+    position: absolute;
+    bottom: 0px;
+    right: 10px;
+    width: 21px;
+    height: 21px;
+    border-radius: 50%;
+    background-color: green;
+    animation: pulseOnline 1.5s infinite;
+    border: 3px solid #1e1e1e;
+  }
+  
+  @keyframes pulseOnline {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.3);
+      opacity: 0.7;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  
+  .online {
+    background-color: green;
+    animation: pulseOnline 1.5s infinite;
+  }
+  
+  .offline {
+    background-color: red;
+    animation: pulseOffline 1.5s infinite;
+  }
+  
+  @keyframes pulseOffline {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.3);
+      opacity: 0.6;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  
+  .button-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .button {
+    margin-top: 10px;
+    padding: 12px 24px;
+    font-size: 18px;
+    cursor: pointer;
+    background-color: #0088cc;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    width: 80%;
+  }
+  
+  button#backToAccountsButton {
+    margin-top: 20px;
+    background-color: #FF6347;
+  }
+  
+  button#refreshButton {
+    margin-top: 10px;
+    background-color: #32CD32;
+  }
+  

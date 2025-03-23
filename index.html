@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Telegram Web App</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="style.css"> <!-- Подключаем внешний файл стилей -->
+</head>
+<body>
+  <div class="header">
+    <button class="theme-toggle" id="theme-toggle">🌞</button>
+    <h1>Выберите аккаунт</h1>
+  </div>
+
+  <div id="content">
+    <!-- Список аккаунтов -->
+    <div id="accounts"></div>
+
+    <!-- Информация о выбранном аккаунте -->
+    <div id="bot-info" style="display:none;">
+      <!-- Карточка аккаунта -->
+      <div class="card2" id="statusCard">
+        <div class="user-image">
+          <img id="avatar" src="" alt="Аватарка" />
+          <div id="statusIndicator" class="status-indicator offline"></div>
+        </div>
+        <h2 id="nickname" style="font-size: 25px;">Ник: Загрузка...</h2>
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <div style="display: flex; height: 25px; font-size: 18px; align-items: center;">
+            <h4 id="status">Загрузка...</h4>
+            <div id="statusIndicator" class="status-indicator offline" style="position: relative; right: -2px; width: 10px; height: 10px; border: 3px solid #1e1e1e;"></div>
+          </div>
+        
+          <div style="display: flex; height: 26px; align-items: center; gap: 3px;">
+            <p id="gameInfo">Игра: Загрузка...</p>
+            <img class="game-icon" id="gameIcon" src="" alt="" style="height: 18px;">
+          </div>
+          <span id="playtime">Часы: Загрузка...</span>
+        </div>
+
+        <a id="profileLink" href="#" target="_blank" class="button">Перейти в профиль</a>
+
+        <!-- Кнопки управления -->
+        <div class="button-group">
+          <button id="startButton">Включить</button>
+          <button id="stopButton">Выключить</button>
+          <button id="changeStatusButton">Изменить статус</button>
+          <button id="addGameButton">Добавить игру</button>
+          <button id="removeGameButton">Удалить игру</button>
+        </div>
+
+        <button id="backToAccountsButton">Вернуться к аккаунтам</button>
+        <button id="refreshButton">🔄 Обновить</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script> <!-- Подключаем внешний файл скриптов -->
+</body>
+</html>
