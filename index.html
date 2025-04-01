@@ -1094,13 +1094,43 @@
         
         // Прокси для CORS
         const CORS_PROXIES = [
-            'https://api.codetabs.com/v1/proxy/?quest=',
+            'https://cors-anywhere.herokuapp.com/',
             'https://thingproxy.freeboard.io/fetch/',
             'https://corsproxy.io/?',
             'https://proxy.cors.sh/',
             'https://cors-anywhere.herokuapp.com/'
         ];
         
+
+
+  // Custom fetch function that handles CORS
+  async function fetchWithCors(url, options = {}) {
+            // Try direct fetch first
+            try {
+                const response = await fetch(url, options);
+                if (response.ok) return response;
+                throw new Error(`HTTP error! status: ${response.status}`);
+            } catch (error) {
+                console.log('Direct fetch failed, trying CORS proxy:', error);
+                
+                // If direct fetch fails, try with CORS proxy
+                const proxyUrl = `https://cors-anywhere.herokuapp.com/${url}`;
+                const proxyResponse = await fetch(proxyUrl, {
+                    ...options,
+                    headers: {
+                        ...options.headers,
+                        'X-Requested-With': 'XMLHttpRequest' // Required by CORS proxy
+                    }
+                });
+                
+                if (!proxyResponse.ok) {
+                    throw new Error(`CORS proxy error: ${proxyResponse.status}`);
+                }
+                
+                return proxyResponse;
+            }
+        }
+
 
 
 
