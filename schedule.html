@@ -1,1 +1,908 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Расписание класса</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            100: '#1a1a1a',
+                            200: '#222222',
+                            300: '#2a2a2a',
+                            400: '#333333',
+                            500: '#3d3d3d',
+                            600: '#4a4a4a',
+                            700: '#5a5a5a',
+                        },
+                        indigo: {
+                            150: '#e0e7ff',
+                            250: '#c7d2fe',
+                        }
+                    },
+                    boxShadow: {
+                        'lesson': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                        'lesson-dark': '0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.15)',
+                        'lesson-glow': '0 0 15px rgba(126, 34, 206, 0.3)'
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s infinite',
+                        'wave': 'wave 6s linear infinite',
+                        'float': 'float 4s ease-in-out infinite'
+                    },
+                    keyframes: {
+                        wave: {
+                            '0%': { backgroundPosition: '0% 50%' },
+                            '50%': { backgroundPosition: '100% 50%' },
+                            '100%': { backgroundPosition: '0% 50%' }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-5px)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .day-tab.active {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            transform: translateY(-2px);
+        }
+        .schedule-card {
+            transition: all 0.3s ease;
+            border-left-width: 6px;
+            position: relative;
+            overflow: hidden;
+        }
+        .schedule-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .schedule-card:hover::before {
+            opacity: 1;
+        }
+        .schedule-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .schedule-card:hover.dark {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+        .modal {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .modal.hidden {
+            opacity: 0;
+            transform: translateY(-20px);
+            pointer-events: none;
+        }
+        html {
+            height: 100%;
+        }
+        body {
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .subject-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+        .schedule-card {
+            border-left: 6px solid;
+        }
+        .break-card {
+            background-color: #f3f4f6;
+            border-left: 6px solid #6b7280;
+        }
+        .dark .break-card {
+            background-color: #2a2a2a;
+            border-left: 6px solid #6b7280;
+        }
+        .long-break-card {
+            background-color: #e5e7eb;
+            border-left: 6px solid #4b5563;
+        }
+        .dark .long-break-card {
+            background-color: #333333;
+            border-left: 6px solid #9ca3af;
+        }
+        .time-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            border-radius: 0 0.5rem 0 0.5rem;
+        }
+        .lesson-pattern {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 80px;
+            height: 80px;
+            opacity: 0.1;
+            background: currentColor;
+            clip-path: polygon(0 100%, 100% 100%, 100% 0);
+        }
+        .day-tabs-container {
+            scrollbar-width: none;
+        }
+        .day-tabs-container::-webkit-scrollbar {
+            display: none;
+        }
+        .admin-key-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            background: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 400px;
+        }
+        .admin-key-container.dark {
+            background: #2a2a2a;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        .progress-bar {
+            height: 4px;
+            width: 100%;
+            background-color: rgba(0, 0, 0, 0.1);
+            position: relative;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+            border-radius: 2px;
+            animation: wave 6s linear infinite;
+            background-size: 200% 100%;
+        }
+        .lesson-time {
+            font-family: monospace;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .break-time {
+            font-family: monospace;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-dark-100 text-gray-800 dark:text-gray-200 flex flex-col">
+    <!-- Background Image with Blur -->
+    <div class="fixed inset-0 bg-[url('https://images.unsplash.com/photo-1541178735493-479c1a27ed24?q=80&w=2071&auto=format&fit=crop')] bg-cover bg-center bg-no-repeat opacity-10 dark:opacity-10 -z-10 blur-sm"></div>
 
+    <!-- Theme and Admin Controls -->
+    <div class="absolute top-4 right-4 flex items-center gap-2">
+        <!-- Admin Key Button (hidden gear icon) -->
+        <button id="adminKeyBtn" class="p-2 rounded-full bg-gray-200 dark:bg-dark-400 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-dark-500 transition-all transform hover:scale-110">
+            <i class="fas fa-key animate-pulse"></i>
+        </button>
+        <!-- Theme Toggle -->
+        <button id="themeToggle" class="p-2 rounded-full bg-gray-200 dark:bg-dark-300 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-dark-400 transition-all transform hover:scale-110">
+            <i id="themeIcon" class="fas fa-moon"></i>
+        </button>
+    </div>
+
+    <!-- Admin Key Modal -->
+    <div id="adminModal" class="modal fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 hidden">
+        <div class="bg-white dark:bg-dark-200 rounded-lg p-6 w-full max-w-md mx-4 shadow-xl">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Доступ администратора</h2>
+            <input id="adminKeyInput" type="password" placeholder="Введите ключ администратора" class="w-full p-3 border border-gray-300 dark:border-dark-400 rounded-lg mb-4 bg-white dark:bg-dark-300 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+            <div class="flex justify-end space-x-3">
+                <button onclick="hideAdminModal()" class="px-4 py-2 bg-gray-300 dark:bg-dark-400 text-gray-800 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-dark-500 transition transform hover:-translate-x-1">Отмена</button>
+                <button onclick="checkAdminKey()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition transform hover:translate-x-1 flex items-center">
+                    <i class="fas fa-lock-open mr-2"></i> Подтвердить
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 hidden">
+        <div class="bg-white dark:bg-dark-200 rounded-lg p-6 w-full max-w-md mx-4 shadow-xl">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Редактирование урока</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 mb-2">Предмет</label>
+                    <input id="editSubject" type="text" class="w-full p-3 border border-gray-300 dark:border-dark-400 rounded-lg bg-white dark:bg-dark-300 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 mb-2">Кабинет</label>
+                    <input id="editRoom" type="text" class="w-full p-3 border border-gray-300 dark:border-dark-400 rounded-lg bg-white dark:bg-dark-300 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 mb-2">Учитель</label>
+                    <input id="editTeacher" type="text" class="w-full p-3 border border-gray-300 dark:border-dark-400 rounded-lg bg-white dark:bg-dark-300 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button onclick="hideEditModal()" class="px-4 py-2 bg-gray-300 dark:bg-dark-400 text-gray-800 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-dark-500 transition transform hover:-translate-x-1">Отмена</button>
+                <button onclick="saveLesson()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition transform hover:translate-x-1 flex items-center">
+                    <i class="fas fa-save mr-2"></i> Сохранить
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 flex-grow">
+        <!-- Header with Floating Effect -->
+        <header class="mb-8 text-center relative animate-float">
+            <div class="absolute left-0 top-0 w-full h-full flex items-center justify-center opacity-10">
+                <i class="fas fa-calendar-alt text-9xl text-indigo-400 dark:text-indigo-600"></i>
+            </div>
+            <div class="relative">
+                <h1 class="text-4xl md:text-5xl font-bold text-indigo-600 dark:text-indigo-400 mb-2 drop-shadow-lg">Расписание класса</h1>
+                <p class="text-gray-600 dark:text-gray-400 text-lg">Актуальное расписание на неделю</p>
+                
+                <div id="dailyQuote" class="mt-4 p-4 bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-dark-300 dark:to-dark-400 rounded-lg max-w-2xl mx-auto text-indigo-800 dark:text-indigo-200 italic border border-indigo-100 dark:border-dark-500 shadow-inner">
+                    <!-- Daily quote will be inserted here -->
+                </div>
+            </div>
+        </header>
+
+        <!-- Days Navigation with Floating Effect -->
+        <div class="day-tabs-container flex overflow-x-auto mb-8 pb-3">
+            <div class="flex space-x-3 mx-auto">
+                <button onclick="showDay('monday')" class="day-tab flex-shrink-0 px-6 py-3 bg-indigo-150 dark:bg-dark-300 text-indigo-700 dark:text-indigo-300 rounded-lg font-medium active transition-all hover:shadow-md flex items-center">
+                    <i class="fas fa-calendar-day mr-2"></i> Понедельник
+                </button>
+                <button onclick="showDay('tuesday')" class="day-tab flex-shrink-0 px-6 py-3 bg-indigo-150 dark:bg-dark-300 text-indigo-700 dark:text-indigo-300 rounded-lg font-medium transition-all hover:shadow-md flex items-center">
+                    <i class="fas fa-calendar-day mr-2"></i> Вторник
+                </button>
+                <button onclick="showDay('wednesday')" class="day-tab flex-shrink-0 px-6 py-3 bg-indigo-150 dark:bg-dark-300 text-indigo-700 dark:text-indigo-300 rounded-lg font-medium transition-all hover:shadow-md flex items-center">
+                    <i class="fas fa-calendar-day mr-2"></i> Среда
+                </button>
+                <button onclick="showDay('thursday')" class="day-tab flex-shrink-0 px-6 py-3 bg-indigo-150 dark:bg-dark-300 text-indigo-700 dark:text-indigo-300 rounded-lg font-medium transition-all hover:shadow-md flex items-center">
+                    <i class="fas fa-calendar-day mr-2"></i> Четверг
+                </button>
+                <button onclick="showDay('friday')" class="day-tab flex-shrink-0 px-6 py-3 bg-indigo-150 dark:bg-dark-300 text-indigo-700 dark:text-indigo-300 rounded-lg font-medium transition-all hover:shadow-md flex items-center">
+                    <i class="fas fa-calendar-day mr-2"></i> Пятница
+                </button>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="mb-8">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Прогресс недели</span>
+                <span class="text-xs font-semibold text-indigo-600 dark:text-indigo-400" id="weekProgress">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-bar-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <!-- Schedule Content -->
+        <div id="scheduleContent">
+            <!-- Monday -->
+            <div id="monday" class="day-content">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- Lessons will be loaded here -->
+                </div>
+                <button onclick="addNewLesson('monday')" class="edit-btn mt-6 w-full py-4 bg-gradient-to-r from-indigo-100 to-indigo-200 dark:from-dark-600 dark:to-dark-700 text-indigo-800 dark:text-indigo-300 rounded-xl hover:from-indigo-200 hover:to-indigo-300 dark:hover:from-dark-700 dark:hover:to-dark-800 transition-all hover:shadow-lg hidden flex items-center justify-center transform hover:-translate-y-1">
+                    <i class="fas fa-plus-circle mr-2 text-lg"></i> Добавить урок
+                </button>
+            </div>
+
+            <!-- Days content will be loaded dynamically -->
+            <div id="tuesday" class="day-content hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+                <button onclick="addNewLesson('tuesday')" class="edit-btn mt-6 w-full py-4 bg-gradient-to-r from-indigo-100 to-indigo-200 dark:from-dark-600 dark:to-dark-700 text-indigo-800 dark:text-indigo-300 rounded-xl hover:from-indigo-200 hover:to-indigo-300 dark:hover:from-dark-700 dark:hover:to-dark-800 transition-all hover:shadow-lg hidden flex items-center justify-center transform hover:-translate-y-1">
+                    <i class="fas fa-plus-circle mr-2 text-lg"></i> Добавить урок
+                </button>
+            </div>
+
+            <div id="wednesday" class="day-content hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+                <button onclick="addNewLesson('wednesday')" class="edit-btn mt-6 w-full py-4 bg-gradient-to-r from-indigo-100 to-indigo-200 dark:from-dark-600 dark:to-dark-700 text-indigo-800 dark:text-indigo-300 rounded-xl hover:from-indigo-200 hover:to-indigo-300 dark:hover:from-dark-700 dark:hover:to-dark-800 transition-all hover:shadow-lg hidden flex items-center justify-center transform hover:-translate-y-1">
+                    <i class="fas fa-plus-circle mr-2 text-lg"></i> Добавить урок
+                </button>
+            </div>
+
+            <div id="thursday" class="day-content hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+                <button onclick="addNewLesson('thursday')" class="edit-btn mt-6 w-full py-4 bg-gradient-to-r from-indigo-100 to-indigo-200 dark:from-dark-600 dark:to-dark-700 text-indigo-800 dark:text-indigo-300 rounded-xl hover:from-indigo-200 hover:to-indigo-300 dark:hover:from-dark-700 dark:hover:to-dark-800 transition-all hover:shadow-lg hidden flex items-center justify-center transform hover:-translate-y-1">
+                    <i class="fas fa-plus-circle mr-2 text-lg"></i> Добавить урок
+                </button>
+            </div>
+
+            <div id="friday" class="day-content hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+                <button onclick="addNewLesson('friday')" class="edit-btn mt-6 w-full py-4 bg-gradient-to-r from-indigo-100 to-indigo-200 dark:from-dark-600 dark:to-dark-700 text-indigo-800 dark:text-indigo-300 rounded-xl hover:from-indigo-200 hover:to-indigo-300 dark:hover:from-dark-700 dark:hover:to-dark-800 transition-all hover:shadow-lg hidden flex items-center justify-center transform hover:-translate-y-1">
+                    <i class="fas fa-plus-circle mr-2 text-lg"></i> Добавить урок
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <footer class="py-4 text-center text-gray-600 dark:text-gray-400 text-sm border-t border-gray-200 dark:border-dark-300">
+        <div class="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
+            <div class="mb-2 md:mb-0">
+                Расписание класса | <span id="currentDate" class="font-semibold"></span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div>
+                    <span id="currentTime" class="font-mono text-indigo-600 dark:text-indigo-400"></span>
+                </div>
+                <div>
+                    Обновлено: <span id="lastUpdated" class="font-medium"></span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Admin Key Input Overlay (Fixed Center) -->
+    <div id="adminKeyContainer" class="admin-key-container hidden dark:bg-dark-200 shadow-xl">
+        <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
+            <i class="fas fa-key mr-2 text-indigo-600 dark:text-indigo-400"></i> Введите ключ администратора
+        </h2>
+        <input id="adminKeyInputMain" type="password" placeholder="Введите ключ администратора" class="w-full p-3 border border-gray-300 dark:border-dark-400 rounded-lg mb-4 bg-white dark:bg-dark-300 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+        <div class="flex justify-end space-x-3">
+            <button onclick="hideAdminKeyContainer()" class="px-4 py-2 bg-gray-300 dark:bg-dark-400 text-gray-800 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-dark-500 transition transform hover:-translate-x-1">Отмена</button>
+            <button onclick="checkAdminKeyMain()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition transform hover:translate-x-1 flex items-center">
+                <i class="fas fa-unlock mr-2"></i> Подтвердить
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const ADMIN_KEY = "class2024";
+        const dailyQuotes = {
+            monday: "Понедельник - сложный день, но наша организованность делает его продуктивным!",
+            tuesday: "Вторник - день возможностей! Вперёд к новым знаниям!",
+            wednesday: "Среда - уже середина недели! Так держать!",
+            thursday: "Четверг - день, когда можно добиться многого!",
+            friday: "Пятница! Последний рывок перед заслуженным отдыхом!"
+        };
+        
+        // Иконки для предметов с измененной иконкой для алгебры
+        const subjectIcons = {
+            "математика": { icon: "fa-square-root-variable", color: "bg-red-100 dark:bg-red-900/80", border: "border-red-500" },
+            "русский язык": { icon: "fa-font", color: "bg-blue-100 dark:bg-blue-900/80", border: "border-blue-500" },
+            "литература": { icon: "fa-book-open-reader", color: "bg-green-100 dark:bg-green-900/80", border: "border-green-500" },
+            "физика": { icon: "fa-atom", color: "bg-purple-100 dark:bg-purple-900/80", border: "border-purple-500" },
+            "химия": { icon: "fa-flask-vial", color: "bg-yellow-100 dark:bg-yellow-900/80", border: "border-yellow-500" },
+            "биология": { icon: "fa-dna", color: "bg-emerald-100 dark:bg-emerald-900/80", border: "border-emerald-500" },
+            "география": { icon: "fa-globe-americas", color: "bg-cyan-100 dark:bg-cyan-900/80", border: "border-cyan-500" },
+            "история": { icon: "fa-landmark-dome", color: "bg-amber-100 dark:bg-amber-900/80", border: "border-amber-500" },
+            "обществознание": { icon: "fa-people-group", color: "bg-orange-100 dark:bg-orange-900/80", border: "border-orange-500" },
+            "физкультура": { icon: "fa-dumbbell", color: "bg-lime-100 dark:bg-lime-900/80", border: "border-lime-500" },
+            "информатика": { icon: "fa-laptop-code", color: "bg-indigo-100 dark:bg-indigo-900/80", border: "border-indigo-500" },
+            "английский язык": { icon: "fa-language", color: "bg-pink-100 dark:bg-pink-900/80", border: "border-pink-500" },
+            "алгебра": { icon: "fa-infinity", color: "bg-red-200 dark:bg-red-800/80", border: "border-red-500" }, // Измененная иконка для алгебры (бесконечность)
+            "геометрия": { icon: "fa-shapes", color: "bg-red-200 dark:bg-red-800/80", border: "border-red-500" },
+            "default": { icon: "fa-book-open", color: "bg-gray-200 dark:bg-gray-700/80", border: "border-gray-500" }
+        };
+        
+        // Время начала уроков и перемен (увеличенные временные промежутки)
+        const lessonTimes = [
+            { start: "08:00", end: "08:50", breakDuration: 10 },
+            { start: "09:00", end: "09:50", breakDuration: 10 },
+            { start: "10:00", end: "10:50", breakDuration: 20 }, // Большая перемена
+            { start: "11:10", end: "12:00", breakDuration: 15 }, // Большая перемена
+            { start: "12:15", end: "13:05", breakDuration: 10 },
+            { start: "13:15", end: "14:05", breakDuration: 10 },
+            { start: "14:15", end: "15:05", breakDuration: 10 }
+        ];
+        
+        let isAdmin = false;
+        let currentEditing = { day: null, index: null };
+        let scheduleData = {
+            monday: [
+                { subject: "Алгебра", room: "203", teacher: "Иванова А.П.", type: "lesson" },
+                { subject: "Русский язык", room: "105", teacher: "Петрова С.И.", type: "lesson" },
+                { subject: "Физика", room: "301", teacher: "Сидоров В.М.", type: "lesson" },
+                { subject: "История", room: "208", teacher: "Кузнецова О.Л.", type: "lesson" },
+                { subject: "Геометрия", room: "203", teacher: "Иванова А.П.", type: "lesson" }
+            ],
+            tuesday: [
+                { subject: "Литература", room: "105", teacher: "Петрова С.И.", type: "lesson" },
+                { subject: "Английский язык", room: "210", teacher: "Смирнова Е.В.", type: "lesson" },
+                { subject: "Химия", room: "302", teacher: "Фролова Н.А.", type: "lesson" },
+                { subject: "Физкультура", room: "Спортзал", teacher: "Козлов А.В.", type: "lesson" }
+            ],
+            wednesday: [
+                { subject: "География", room: "207", teacher: "Волков Д.С.", type: "lesson" },
+                { subject: "Биология", room: "304", teacher: "Зайцева Л.М.", type: "lesson" },
+                { subject: "Физкультура", room: "Спортзал", teacher: "Козлов А.В.", type: "lesson" },
+                { subject: "Информатика", room: "401", teacher: "Николаев П.К.", type: "lesson" }
+            ],
+            thursday: [
+                { subject: "Алгебра", room: "203", teacher: "Иванова А.П.", type: "lesson" },
+                { subject: "Геометрия", room: "203", teacher: "Иванова А.П.", type: "lesson" },
+                { subject: "Обществознание", room: "208", teacher: "Кузнецова О.Л.", type: "lesson" },
+                { subject: "Английский язык", room: "210", teacher: "Смирнова Е.В.", type: "lesson" }
+            ],
+            friday: [
+                { subject: "Физика", room: "301", teacher: "Сидоров В.М.", type: "lesson" },
+                { subject: "Английский язык", room: "210", teacher: "Смирнова Е.В.", type: "lesson" },
+                { subject: "Литература", room: "105", teacher: "Петрова С.И.", type: "lesson" },
+                { subject: "Физкультура", room: "Спортзал", teacher: "Козлов А.В.", type: "lesson" }
+            ]
+        };
+
+        // DOM Content Loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load saved schedule or default
+            loadSchedule();
+            
+            // Initialize theme
+            initTheme();
+            
+            // Show Monday by default
+            showDay('monday');
+            
+            // Set up theme toggle
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+            
+            // Set up admin key button
+            document.getElementById('adminKeyBtn').addEventListener('click', showAdminKeyContainer);
+            
+            // Check if admin mode is already active
+            if (localStorage.getItem('isAdmin') === 'true') {
+                activateAdminMode();
+            }
+            
+            // Set last updated time
+            updateLastModifiedTime();
+            
+            // Set current date
+            updateCurrentDate();
+            
+            // Start clock
+            updateClock();
+            setInterval(updateClock, 1000);
+            
+            // Update week progress
+            updateWeekProgress();
+        });
+
+        // Theme functions
+        function initTheme() {
+            if (localStorage.getItem('darkMode') === 'true' || 
+                (window.matchMedia('(prefers-color-scheme: dark)').matches && !localStorage.getItem('darkMode'))) {
+                document.documentElement.classList.add('dark');
+                document.getElementById('themeIcon').classList.replace('fa-moon', 'fa-sun');
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.getElementById('themeIcon').classList.replace('fa-sun', 'fa-moon');
+            }
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('themeIcon');
+            
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                icon.classList.replace('fa-sun', 'fa-moon');
+                localStorage.setItem('darkMode', 'false');
+            } else {
+                html.classList.add('dark');
+                icon.classList.replace('fa-moon', 'fa-sun');
+                localStorage.setItem('darkMode', 'true');
+            }
+        }
+
+        function showAdminKeyContainer() {
+            const container = document.getElementById('adminKeyContainer');
+            container.classList.remove('hidden');
+            
+            // Focus input
+            setTimeout(() => {
+                document.getElementById('adminKeyInputMain').focus();
+            }, 100);
+        }
+
+        function hideAdminKeyContainer() {
+            const container = document.getElementById('adminKeyContainer');
+            container.classList.add('hidden');
+        }
+
+        // Clock functions
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('ru-RU');
+            document.getElementById('currentTime').textContent = timeStr;
+        }
+
+        function updateCurrentDate() {
+            const now = new Date();
+            const options = { 
+                weekday: 'long', 
+                day: 'numeric', 
+                month: 'long', 
+                year: 'numeric' 
+            };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('ru-RU', options);
+        }
+
+        function updateWeekProgress() {
+            const now = new Date();
+            const dayOfWeek = now.getDay(); // 0 - воскресенье, 1 - понедельник и т.д.
+            const currentHour = now.getHours();
+            
+            // Рассчитываем прогресс недели (от понедельника до пятницы)
+            let progress = 0;
+            if (dayOfWeek >= 1 && dayOfWeek <= 5) { // Рабочие дни
+                const dayProgress = ((dayOfWeek - 1) / 5) * 100;
+                const hourProgress = (currentHour / 24) * 20; // Добавляем 20% за каждый день
+                progress = dayProgress + hourProgress;
+                if (progress > 100) progress = 100;
+            } else if (dayOfWeek === 0 || dayOfWeek === 6) { // Выходные
+                progress = 100;
+            }
+            
+            document.getElementById('weekProgress').textContent = Math.round(progress) + '%';
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        // Admin key functions
+        function checkAdminKeyMain() {
+            const input = document.getElementById('adminKeyInputMain');
+            if (input.value === ADMIN_KEY) {
+                activateAdminMode();
+                hideAdminKeyContainer();
+                input.value = '';
+            } else {
+                alert('Неверный ключ администратора!');
+                input.value = '';
+            }
+        }
+
+        function checkAdminKey() {
+            const input = document.getElementById('adminKeyInput');
+            if (input.value === ADMIN_KEY) {
+                activateAdminMode();
+                hideAdminModal();
+                input.value = '';
+            } else {
+                alert('Неверный ключ администратора!');
+                input.value = '';
+            }
+        }
+
+        function activateAdminMode() {
+            isAdmin = true;
+            localStorage.setItem('isAdmin', 'true');
+            updateEditButtonsVisibility();
+            
+            // Change admin key button style to indicate active mode
+            const adminBtn = document.getElementById('adminKeyBtn');
+            adminBtn.classList.remove('bg-gray-200', 'dark:bg-dark-400');
+            adminBtn.classList.add('bg-indigo-100', 'dark:bg-indigo-900/50', 'text-indigo-600', 'dark:text-indigo-300');
+        }
+
+        // Schedule functions
+        function loadSchedule() {
+            const savedSchedule = localStorage.getItem('classSchedule');
+            if (savedSchedule) {
+                scheduleData = JSON.parse(savedSchedule);
+            }
+            
+            // Render all days
+            ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].forEach(day => {
+                renderDay(day);
+            });
+        }
+
+        function saveSchedule() {
+            localStorage.setItem('classSchedule', JSON.stringify(scheduleData));
+            updateLastModifiedTime();
+        }
+
+        function renderDay(day) {
+            const container = document.getElementById(day).querySelector('.grid');
+            container.innerHTML = '';
+            
+            let dayLessons = scheduleData[day];
+            let lessonsWithBreaks = [];
+            
+            // Добавляем перемены между уроками
+            for (let i = 0; i < dayLessons.length; i++) {
+                // Добавляем урок
+                lessonsWithBreaks.push(dayLessons[i]);
+                
+                // Добавляем перемену после урока (кроме последнего урока)
+                if (i < dayLessons.length - 1) {
+                    const breakDuration = (i === 2 || i === 3) ? 20 : 10; // Большие перемены после 3 и 4 урока
+                    lessonsWithBreaks.push({
+                        type: "break",
+                        duration: breakDuration,
+                        isLongBreak: breakDuration === 20
+                    });
+                }
+            }
+            
+            // Рендерим уроки и перемены с правильным временем
+            lessonsWithBreaks.forEach((item, index) => {
+                if (item.type === "lesson") {
+                    // Находим индекс урока (игнорируем перемены)
+                    const lessonIndex = scheduleData[day].findIndex(l => l === item);
+                    
+                    if (lessonIndex >= 0 && lessonIndex < lessonTimes.length) {
+                        const lessonTime = lessonTimes[lessonIndex];
+                        const subjectLower = item.subject.toLowerCase();
+                        const iconInfo = subjectIcons[subjectLower] || subjectIcons['default'];
+                        
+                        const lessonHTML = `
+                            <div class="schedule-card animate-float bg-white dark:bg-dark-200 p-5 rounded-xl shadow-md dark:shadow-lg-dark relative ${iconInfo.border} hover:shadow-lg hover:shadow-indigo-500/10 dark:hover:shadow-indigo-500/20">
+                                <div class="absolute top-0 right-0 ${iconInfo.color} ${iconInfo.border} time-badge text-xs font-bold text-gray-700 dark:text-gray-200">
+                                    ${lessonTime.start}-${lessonTime.end}
+                                </div>
+                                <div class="flex items-start space-x-4">
+                                    <div class="subject-icon ${iconInfo.color} text-indigo-700 dark:text-indigo-300 mt-1 shadow">
+                                        <i class="fas ${iconInfo.icon}"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h3 class="text-xl font-bold text-gray-800 dark:text-white">${item.subject}</h3>
+                                            </div>
+                                            <div class="flex space-x-2">
+                                                <button class="edit-btn hidden p-1 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transform hover:scale-110 transition" onclick="event.stopPropagation(); showEditModal(${lessonIndex}, '${day}')">
+                                                    <i class="fas fa-pen-to-square text-sm"></i>
+                                                </button>
+                                                <button class="delete-btn hidden p-1 text-gray-400 hover:text-red-600 transform hover:scale-110 transition" onclick="event.stopPropagation(); deleteLesson(${lessonIndex}, '${day}')">
+                                                    <i class="fas fa-trash-can text-sm"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="mt-4 pt-3 border-t border-gray-200 dark:border-dark-400">
+                                            <div class="flex items-center text-base text-gray-700 dark:text-gray-300 mb-2">
+                                                <i class="fas fa-door-open text-gray-500 dark:text-gray-400 mr-2 w-5 text-center"></i>
+                                                <span class="font-medium">${item.room.startsWith('Каб. ') ? item.room : 'Каб. ' + item.room}</span>
+                                            </div>
+                                            <div class="flex items-center text-base text-gray-700 dark:text-gray-300">
+                                                <i class="fas fa-chalkboard-user text-gray-500 dark:text-gray-400 mr-2 w-5 text-center"></i>
+                                                <span class="font-medium">${item.teacher}</span>
+                                            </div>
+                                        </div>
+                                        <div class="lesson-pattern"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        container.innerHTML += lessonHTML;
+                    }
+                } else if (item.type === "break") {
+                    // Находим предыдущий урок для определения времени перемены
+                    const lessonIndex = scheduleData[day].findIndex(l => l === lessonsWithBreaks[index - 1]);
+                    
+                    if (lessonIndex >= 0 && lessonIndex < lessonTimes.length - 1) {
+                        // Время перемены - это конец текущего урока + время перемены
+                        const breakStart = lessonTimes[lessonIndex].end;
+                        const breakEnd = lessonTimes[lessonIndex + 1].start;
+                        
+                        const breakColorClass = item.isLongBreak ? "long-break-card" : "break-card";
+                        const clockIcon = item.isLongBreak ? "fa-clock" : "fa-mug-hot";
+                        const breakIconClass = item.isLongBreak ? "text-blue-500" : "text-gray-500";
+                        
+                        const breakHTML = `
+                            <div class="schedule-card ${breakColorClass} hover:shadow-lg p-4 rounded-xl">
+                                <div class="flex items-center space-x-4">
+                                    <div class="bg-white dark:bg-dark-300 ${breakIconClass} p-3 rounded-full shadow-md transform hover:rotate-12 transition">
+                                        <i class="fas ${clockIcon} text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-bold text-gray-700 dark:text-gray-300">${item.isLongBreak ? "Большая перемена" : "Перемена"}</h3>
+                                        <div class="mt-1 text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                                            <div class="flex items-center">
+                                                <i class="fas fa-hourglass-half mr-2 w-4"></i>
+                                                <span>${item.duration} минут</span>
+                                            </div>
+                                            <div class="lesson-time">
+                                                <i class="far fa-clock mr-2 w-4"></i>
+                                                <span>${breakStart}-${breakEnd}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                ${item.isLongBreak ? 
+                                    `<div class="mt-3 italic text-sm text-gray-600 dark:text-gray-400">
+                                        <i class="fas fa-utensils mr-1"></i> Время перекусить!
+                                    </div>` : ''
+                                }
+                            </div>
+                        `;
+                        container.innerHTML += breakHTML;
+                    }
+                }
+            });
+            
+            // Update edit buttons visibility based on admin mode
+            updateEditButtonsVisibility();
+        }
+
+        function updateLastModifiedTime() {
+            const now = new Date();
+            const options = { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            };
+            document.getElementById('lastUpdated').textContent = now.toLocaleDateString('ru-RU', options);
+        }
+
+        function updateEditButtonsVisibility() {
+            const editBtns = document.querySelectorAll('.edit-btn');
+            const deleteBtns = document.querySelectorAll('.delete-btn');
+            const addBtns = document.querySelectorAll('button[onclick^="addNewLesson"]');
+            
+            if (isAdmin) {
+                editBtns.forEach(btn => btn.classList.remove('hidden'));
+                deleteBtns.forEach(btn => btn.classList.remove('hidden'));
+                addBtns.forEach(btn => btn.classList.remove('hidden'));
+            } else {
+                editBtns.forEach(btn => btn.classList.add('hidden'));
+                deleteBtns.forEach(btn => btn.classList.add('hidden'));
+                addBtns.forEach(btn => btn.classList.add('hidden'));
+            }
+        }
+
+        // Admin functions
+        function showAdminModal() {
+            document.getElementById('adminModal').classList.remove('hidden');
+        }
+
+        function hideAdminModal() {
+            document.getElementById('adminModal').classList.add('hidden');
+        }
+
+        // Lesson editing functions
+        function showEditModal(index, day) {
+            if (!isAdmin) {
+                showAdminKeyContainer();
+                return;
+            }
+            
+            currentEditing = { day, index };
+            const lesson = scheduleData[day][index];
+            
+            document.getElementById('editSubject').value = lesson.subject;
+            document.getElementById('editRoom').value = lesson.room;
+            document.getElementById('editTeacher').value = lesson.teacher;
+            
+            document.getElementById('editModal').classList.remove('hidden');
+            
+            // Focus first input
+            setTimeout(() => {
+                document.getElementById('editSubject').focus();
+            }, 100);
+        }
+
+        function hideEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+
+        function saveLesson() {
+            const { day, index } = currentEditing;
+            
+            // Get values from form
+            const subject = document.getElementById('editSubject').value.trim();
+            const room = document.getElementById('editRoom').value.trim();
+            const teacher = document.getElementById('editTeacher').value.trim();
+            
+            if (!subject || !room || !teacher) {
+                alert('Все поля должны быть заполнены!');
+                return;
+            }
+            
+            // Update schedule data
+            scheduleData[day][index] = { subject, room, teacher, type: "lesson" };
+            
+            // Save and re-render
+            saveSchedule();
+            renderDay(day);
+            hideEditModal();
+        }
+
+        function addNewLesson(day) {
+            if (!isAdmin) {
+                showAdminKeyContainer();
+                return;
+            }
+            
+            // Add empty lesson
+            scheduleData[day].push({ subject: "Новый предмет", room: "000", teacher: "ФИО", type: "lesson" });
+            
+            // Save and re-render
+            saveSchedule();
+            renderDay(day);
+            
+            // Scroll to bottom
+            const container = document.getElementById(day);
+            container.scrollTop = container.scrollHeight;
+            
+            // Immediately open edit modal for the new lesson
+            setTimeout(() => {
+                showEditModal(scheduleData[day].length - 1, day);
+            }, 100);
+        }
+
+        function deleteLesson(index, day) {
+            if (!isAdmin) return;
+            
+            if (confirm('Вы уверены, что хотите удалить этот урок?')) {
+                scheduleData[day].splice(index, 1);
+                saveSchedule();
+                renderDay(day);
+            }
+        }
+
+        function showDay(day) {
+            // Hide all day contents
+            document.querySelectorAll('.day-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // Show selected day content
+            document.getElementById(day).classList.remove('hidden');
+            
+            // Update active tab
+            document.querySelectorAll('.day-tab').forEach(tab => {
+                tab.classList.remove('active', 'bg-indigo-600', 'text-white');
+                tab.classList.add('bg-indigo-150', 'dark:bg-dark-300', 'text-indigo-700', 'dark:text-indigo-300');
+            });
+            
+            // Set active tab
+            const tabs = document.querySelectorAll('.day-tab');
+            const dayIndex = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].indexOf(day);
+            tabs[dayIndex].classList.add('active', 'bg-indigo-600', 'text-white');
+            tabs[dayIndex].classList.remove('bg-indigo-150', 'dark:bg-dark-300', 'text-indigo-700', 'dark:text-indigo-300');
+            
+            // Show daily quote with animation
+            const quoteElement = document.getElementById('dailyQuote');
+            quoteElement.classList.add('opacity-0', 'translate-y-2');
+            quoteElement.textContent = dailyQuotes[day];
+            
+            setTimeout(() => {
+                quoteElement.classList.remove('opacity-0', 'translate-y-2');
+                quoteElement.classList.add('opacity-100', 'translate-y-0');
+            }, 10);
+            
+            // Remove animation classes after transition
+            setTimeout(() => {
+                quoteElement.classList.remove('opacity-100', 'translate-y-0');
+            }, 300);
+        }
+    </script>
+</body>
+</html>
