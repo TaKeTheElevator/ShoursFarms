@@ -2347,6 +2347,75 @@
             }
         }
 
+
+
+
+
+
+
+
+
+
+
+        // Получение данных через JSONP для обхода CORS (работает на GitHub Pages)
+        function fetchJsonp(url, callbackName = 'jsonpCallback') {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = `${url}${url.includes('?') ? '&' : '?'}callback=${callbackName}`;
+                script.async = true;
+                script.onload = () => {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                };
+                script.onerror = () => reject(new Error('Failed to load JSONP'));
+                window[callbackName] = (data) => resolve(data);
+                document.body.appendChild(script);
+            });
+        }
+
+   
+        // ... (Your existing functions remain the same except API calls) ...
+
+        // Обновленная функция загрузки данных бота через JSONP
+        async function getBotData(account) {
+            try {
+                const data = await fetchJsonp(`${API_BASE_URL}/${account}`);
+                
+                if (!data.Result || !data.Result[account]) {
+                    throw new Error('Неверный формат данных от API');
+                }
+                
+                data.Result[account].name = account;
+                return data.Result[account];
+            } catch (error) {
+                console.error(`Ошибка получения данных для ${account}:`, error);
+                return null;
+            }
+        }
+
+        // Обновление статуса бота через JSONP
+        async function toggleBot(start) {
+            if (!currentBotData) return;
+                        
+            const action = start ? 'Start' : 'Stop';
+            const endpoint = `${API_BASE_URL}/${currentBotData.name}/${action}`;
+            
+            try {
+                await fetchJsonp(endpoint);
+                showNotification(`${currentBotData.name} успешно ${start ? 'запущен' : 'остановлен'}`);
+                await loadAllAccounts();
+            } catch (error) {
+                showNotification(`Ошибка при ${start ? 'запуске' : 'остановке'} бота`, 'error');
+            }
+        }
+
+
+
+
+
+
+
+        
         // Показ сообщения об ошибке
         function showError(message) {
             const errorElement = document.createElement('div');
