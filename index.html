@@ -1083,7 +1083,7 @@
 
     <script>
         // Конфигурация
-        const API_BASE_URL = 'http://46.8.21.39:1242/Api/Bot';
+        const API_BASE_URL = 'http://46.8.21.39:3000/api'; // Изменено на локальный прокси
         const API_AUTH = 'Basic 102030';
         const AVATAR_BASE_URL = 'https://avatars.fastly.steamstatic.com/';
         const DEFAULT_AVATAR = 'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg';
@@ -1092,14 +1092,8 @@
         const STEAM_APP_IMAGE_URL = 'https://cdn.akamai.steamstatic.com/steam/apps/';
         const STEAM_PROFILE_URL = 'https://steamcommunity.com/profiles/';
         
-        // Прокси для CORS
-        const CORS_PROXIES = [
-            'https://cors-anywhere.herokuapp.com/',
-            'https://thingproxy.freeboard.io/fetch/',
-            'https://corsproxy.io/?',
-            'https://proxy.cors.sh/',
-            'https://cors-anywhere.herokuapp.com/'
-        ];
+        // Удаляем CORS прокси, так как теперь используем локальный прокси
+        const CORS_PROXIES = [];
         
 
 
@@ -1537,7 +1531,8 @@
         async function fetchWithRetry(url, options = {}, retries = 3) {
             for (let i = 0; i < retries; i++) {
                 try {
-                    const proxyUrl = `${CORS_PROXIES[i % CORS_PROXIES.length]}${url}`;
+                    // Преобразуем URL для использования локального прокси
+                    const proxyUrl = url.startsWith(API_BASE_URL) ? url : `${API_BASE_URL}${url}`;
                     const response = await fetch(proxyUrl, options);
                     
                     if (!response.ok) {
@@ -1546,20 +1541,14 @@
                     
                     return response;
                 } catch (error) {
-                    console.error(`Попытка ${i + 1} не удалась с прокси ${CORS_PROXIES[i % CORS_PROXIES.length]}`);
-                    
-                    // Показываем уведомление о CORS прокси
-                    corsMessage.textContent = `Повторная попытка с прокси ${i + 2}/${retries}`;
-                    corsNotification.style.display = 'flex';
-                    
-                    // Скрываем через 2 секунды
-                    setTimeout(() => {
-                        corsNotification.style.display = 'none';
-                    }, 2000);
+                    console.error(`Попытка ${i + 1} не удалась:`, error);
                     
                     if (i === retries - 1) {
                         throw error;
                     }
+                    
+                    // Ждем перед следующей попыткой
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
                 }
             }
         }
